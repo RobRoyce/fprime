@@ -11,7 +11,7 @@
 // ======================================================================
 
 #include <RPI/RpiDemo/RpiDemoComponentImpl.hpp>
-#include <FpConfig.hpp>
+#include <Fw/FPrimeBasicTypes.hpp>
 #include <ctype.h>
 
 namespace RPI {
@@ -106,15 +106,15 @@ namespace RPI {
     UartRead_handler(
         const FwIndexType portNum,
         Fw::Buffer &serBuffer,
-        const Drv::RecvStatus &status
+        const Drv::ByteStreamStatus &status
     )
   {
-      if (Drv::RecvStatus::RECV_OK == status.e) {
+      if (Drv::ByteStreamStatus::OP_OK == status.e) {
           // convert incoming data to string. If it is not printable, set character to '*'
           char uMsg[serBuffer.getSize() + 1];
           char *bPtr = reinterpret_cast<char *>(serBuffer.getData());
 
-          for (NATIVE_UINT_TYPE byte = 0; byte < serBuffer.getSize(); byte++) {
+          for (FwSizeType byte = 0; byte < serBuffer.getSize(); byte++) {
             uMsg[byte] = isalpha(bPtr[byte]) ? bPtr[byte] : '*';
           }
           uMsg[sizeof(uMsg) - 1] = 0;
@@ -142,15 +142,17 @@ namespace RPI {
       Fw::Buffer txt;
       txt.setSize(text.length());
       txt.setData(reinterpret_cast<U8*>(const_cast<char*>(text.toChar())));
-      Drv::SendStatus status = this->UartWrite_out(0, txt);
-      if (Drv::SendStatus::SEND_OK == status.e) {
-        this->m_uartWriteBytes += text.length();
-
-        Fw::LogStringArg arg = text;
-        this->log_ACTIVITY_HI_RD_UartMsgOut(arg);
-      }
+      this->UartWrite_out(0, txt);
       this->cmdResponse_out(opCode, cmdSeq, Fw::CmdResponse::OK);
   }
+
+    void RpiDemoComponentImpl ::UartWriteReturn_handler(FwIndexType portNum, Fw::Buffer& buffer, const Drv::ByteStreamStatus& status) {
+        if (Drv::ByteStreamStatus::OP_OK == status.e) {
+            this->m_uartWriteBytes += buffer.getSize();
+            Fw::LogStringArg arg(reinterpret_cast<char *>(buffer.getData()));
+            this->log_ACTIVITY_HI_RD_UartMsgOut(arg);
+        }
+    }
 
   void RpiDemoComponentImpl ::
     RD_SetGpio_cmdHandler(
@@ -160,7 +162,7 @@ namespace RPI {
         Fw::Logic value
     )
   {
-      NATIVE_INT_TYPE port;
+      FwIndexType port;
       // convert to connected ports
       switch (output.e) {
           case RpiDemo_GpioOutNum::PIN_23:
@@ -191,7 +193,7 @@ namespace RPI {
         RpiDemo_GpioInNum input /*!< Input GPIO*/
     )
   {
-      NATIVE_INT_TYPE port;
+      FwIndexType port;
       // convert to connected ports
       switch (input.e) {
           case RpiDemo_GpioInNum::PIN_25:
@@ -229,7 +231,7 @@ namespace RPI {
       out.setData(reinterpret_cast<U8*>(const_cast<char*>(data.toChar())));
       out.setSize(data.length());
       this->SpiReadWrite_out(0, out, in);
-      for (NATIVE_UINT_TYPE byte = 0; byte < sizeof(inBuf); byte++) {
+      for (FwSizeType byte = 0; byte < static_cast<FwSizeType>(sizeof(inBuf)); byte++) {
           inBuf[byte] = isalpha(inBuf[byte])?inBuf[byte]:'*';
       }
       inBuf[sizeof(inBuf)-1] = 0;

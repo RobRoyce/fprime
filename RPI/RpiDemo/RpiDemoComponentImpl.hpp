@@ -50,7 +50,7 @@ namespace RPI {
       //!
       ~RpiDemoComponentImpl();
 
-    PRIVATE:
+    private:
 
       // ----------------------------------------------------------------------
       // Handler implementations for user-defined typed input ports
@@ -68,10 +68,17 @@ namespace RPI {
       void UartRead_handler(
           const FwIndexType portNum, /*!< The port number*/
           Fw::Buffer &serBuffer, /*!< Buffer containing data*/
-          const Drv::RecvStatus &status /*!< Status of read*/
+          const Drv::ByteStreamStatus &status /*!< Status of read*/
       ) override;
 
-    PRIVATE:
+      //! Handler implementation for UartWriteReturn
+      //!
+      //! Input port for getting back buffer ownership and status when using UartWrite
+      void UartWriteReturn_handler(FwIndexType portNum,  //!< The port number
+        Fw::Buffer& buffer,
+        const Drv::ByteStreamStatus& status) override;
+
+    private:
 
       // ----------------------------------------------------------------------
       // Command handler implementations
@@ -138,7 +145,6 @@ namespace RPI {
       Fw::Logic m_currLedVal;
       // serial buffers
       Fw::Buffer m_recvBuffers[NUM_RPI_UART_BUFFERS];
-      BYTE m_uartBuffers[NUM_RPI_UART_BUFFERS][RPI_UART_READ_BUFF_SIZE];
       // LED enabled
       bool m_ledOn;
       // toggle LED divider

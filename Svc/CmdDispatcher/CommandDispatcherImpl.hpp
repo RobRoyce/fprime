@@ -16,7 +16,7 @@
 
 #include <Svc/CmdDispatcher/CommandDispatcherComponentAc.hpp>
 #include <Os/Mutex.hpp>
-#include <CommandDispatcherImplCfg.hpp>
+#include <config/CommandDispatcherImplCfg.hpp>
 
 namespace Svc {
 
@@ -30,6 +30,9 @@ namespace Svc {
     //! as the port that submitted the command, the command status will be returned.
 
     class CommandDispatcherImpl final : public CommandDispatcherComponentBase {
+
+        friend class CommandDispatcherImplTester;
+
         public:
             //!  \brief Command Dispatcher constructor
             //!
@@ -43,8 +46,8 @@ namespace Svc {
             //!
             //!  The destructor for this component is empty
             virtual ~CommandDispatcherImpl();
-        PROTECTED:
-        PRIVATE:
+        protected:
+        private:
             //!  \brief component command status handler
             //!
             //!  The command status handler is called when a component
@@ -132,8 +135,8 @@ namespace Svc {
 
             struct DispatchEntry {
                     bool used; //!< if entry has been used yet
-                    U32 opcode; //!< opcode of entry
-                    NATIVE_INT_TYPE port; //!< which port the entry invokes
+                    FwOpcodeType opcode; //!< opcode of entry
+                    FwIndexType port; //!< which port the entry invokes
             } m_entryTable[CMD_DISPATCHER_DISPATCH_TABLE_SIZE]; //!< table of dispatch entries
 
             //! \struct SequenceTracker
@@ -154,7 +157,7 @@ namespace Svc {
                     U32 seq; //!< command sequence number
                     FwOpcodeType opCode; //!< opcode being tracked
                     U32 context; //!< context passed by user
-                    NATIVE_INT_TYPE callerPort; //!< port command source port
+                    FwIndexType callerPort; //!< port command source port
             } m_sequenceTracker[CMD_DISPATCHER_SEQUENCER_TABLE_SIZE]; //!< sequence tracking port for command completions;
 
             U32 m_seq; //!< current command sequence number

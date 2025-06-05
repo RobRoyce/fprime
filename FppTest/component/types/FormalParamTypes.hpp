@@ -25,6 +25,10 @@
 #include "FppTest/component/active/FormalParamEnumEnumAc.hpp"
 #include "FppTest/component/active/FormalParamStructSerializableAc.hpp"
 #include "FppTest/component/active/StringArgsPortAc.hpp"
+#include "FppTest/component/active/FormalAliasArrayAliasAc.hpp"
+#include "FppTest/component/active/FormalAliasEnumAliasAc.hpp"
+#include "FppTest/component/active/FormalAliasStringAliasAc.hpp"
+#include "FppTest/component/active/FormalAliasStringArrayArrayAc.hpp"
 #include "FppTest/utils/Utils.hpp"
 
 #define SERIAL_ARGS_BUFFER_CAPACITY 256
@@ -60,6 +64,12 @@ struct U32Type {
     U32 val;
 };
 
+struct I32Type {
+    I32Type();
+
+    I32 val;
+};
+
 struct F32Type {
     F32Type();
 
@@ -92,6 +102,8 @@ struct EnumTypes {
 
     FormalParamEnum val1;
     FormalParamEnum val2;
+    FormalAliasEnum val3;
+    FormalAliasEnum val4;
 };
 
 struct ArrayType {
@@ -105,6 +117,10 @@ struct ArrayTypes {
 
     FormalParamArray val1;
     FormalParamArray val2;
+    FormalAliasArray val3;
+    FormalAliasArray val4;
+    FormalAliasStringArray val5;
+    FormalAliasStringArray val6;
 };
 
 struct StructType {
@@ -207,6 +223,25 @@ struct PrmStringTypes {
     Fw::ParamString val2;
 };
 
+struct StringType {
+    StringType();
+
+    String1 val;
+};
+
+struct AliasStringArrayType {
+    AliasStringArrayType();
+
+    FormalAliasStringArray val;
+};
+
+struct StringTypes {
+    StringTypes();
+
+    String1 val1;
+    String1 val2;
+};
+
 // ----------------------------------------------------------------------
 // Serial type
 // ----------------------------------------------------------------------
@@ -227,6 +262,7 @@ void setRandomString(Fw::StringBase& str, U32 size);
 FormalParamEnum getRandomFormalParamEnum();
 void getRandomFormalParamArray(FormalParamArray& a);
 FormalParamStruct getRandomFormalParamStruct();
+void getRandomFormalStringArray(FormalAliasStringArray& a);
 
 // ----------------------------------------------------------------------
 // Typedefs
@@ -235,6 +271,7 @@ FormalParamStruct getRandomFormalParamStruct();
 typedef FormalParams<Empty> NoParams;
 typedef FormalParams<BoolType> BoolParam;
 typedef FormalParams<U32Type> U32Param;
+typedef FormalParams<I32Type> I32Param;
 typedef FormalParams<F32Type> F32Param;
 typedef FormalParams<PrimitiveTypes> PrimitiveParams;
 typedef FormalParams<EnumType> EnumParam;
@@ -260,7 +297,10 @@ typedef FormalParams<SerialType> SerialParam;
 typedef FormalParamsWithReturn<Empty, BoolType> NoParamReturn;
 typedef FormalParamsWithReturn<PrimitiveTypes, U32Type> PrimitiveReturn;
 typedef FormalParamsWithReturn<EnumTypes, EnumType> EnumReturn;
+typedef FormalParamsWithReturn<StringTypes, StringType> StringReturn;
+typedef FormalParamsWithReturn<StringTypes, FormalAliasString> StringAliasReturn;
 typedef FormalParamsWithReturn<ArrayTypes, ArrayType> ArrayReturn;
+typedef FormalParamsWithReturn<ArrayTypes, FormalAliasStringArray> ArrayStringAliasReturn;
 typedef FormalParamsWithReturn<StructTypes, StructType> StructReturn;
 
 }  // namespace Types

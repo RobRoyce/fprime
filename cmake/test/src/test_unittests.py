@@ -6,11 +6,9 @@
 ####
 import platform
 import tempfile
-
-import settings
-
-import cmake
 from pathlib import Path
+from . import cmake
+from . import settings
 
 _ = cmake.get_build(
     "UT_BUILD",
@@ -48,7 +46,7 @@ UNIT_TESTS = [
     "Svc_FileDownlink_ut_exe",
     "Svc_FileManager_ut_exe",
     "Svc_FileUplink_ut_exe",
-    "Svc_Framer_ut_exe",
+    "Svc_FprimeFramer_ut_exe",
     "Svc_GenericHub_ut_exe",
     "Svc_Health_ut_exe",
     "Svc_PosixTime_ut_exe",
@@ -99,19 +97,6 @@ def test_unittest_installation(UT_BUILD):
     assert output_path.exists(), "Failed to locate Ref in build output"
 
 
-def test_unittest_dictionary(UT_BUILD):
-    """Run reference and assert reference targets exit"""
-    cmake.assert_process_success(UT_BUILD, errors_ok=True)
-    output_path = (
-        UT_BUILD["install"]
-        / platform.system()
-        / "Ref"
-        / "dict"
-        / "RefTopologyAppDictionary.xml"
-    )
-    assert output_path.exists(), "Failed to locate Ref in build output"
-
-
 def test_unittest_module_ut_info(UT_BUILD):
     """Run reference and assert module-ut-info.txt was created"""
     cmake.assert_process_success(UT_BUILD, errors_ok=True)
@@ -144,12 +129,6 @@ def test_unittest_module_ut_info(UT_BUILD):
         actual_ac
     ), "Did not find expected autocoder sources"
     expected_gen = [
-        "SignalGenComponentAi.xml",
-        "SignalInfoSerializableAi.xml",
-        "SignalPairSerializableAi.xml",
-        "SignalPairSetArrayAi.xml",
-        "SignalSetArrayAi.xml",
-        "SignalTypeEnumAi.xml",
         "SignalGenComponentAc.cpp",
         "SignalGenComponentAc.hpp",
         "SignalInfoSerializableAc.cpp",
@@ -169,10 +148,9 @@ def test_unittest_module_ut_info(UT_BUILD):
         "SignalGenTesterHelpers.cpp",
         "SignalGen_DpReqTypeEnumAc.cpp",
         "SignalGen_DpReqTypeEnumAc.hpp",
-        "SignalGen_DpReqTypeEnumAi.xml",
     ]
     actual_gen = [Path(source).name for source in generated]
     assert sorted(expected_gen) == sorted(
         actual_gen
     ), "Did not find expected autocoder generated sources"
-    assert dependencies == ["Ref_SignalGen"], "Did not find expected dependencies"
+    assert "Ref_SignalGen" in dependencies, "Did not find expected dependencies"

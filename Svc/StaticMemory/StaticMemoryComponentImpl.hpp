@@ -13,12 +13,15 @@
 #ifndef StaticMemory_HPP
 #define StaticMemory_HPP
 
-#include "StaticMemoryConfig.hpp"
+#include "config/StaticMemoryConfig.hpp"
 #include "Svc/StaticMemory/StaticMemoryComponentAc.hpp"
 
 namespace Svc {
 
 class StaticMemoryComponentImpl final : public StaticMemoryComponentBase {
+
+  friend class StaticMemoryTester;
+
   public:
     // ----------------------------------------------------------------------
     // Construction, initialization, and destruction
@@ -33,7 +36,7 @@ class StaticMemoryComponentImpl final : public StaticMemoryComponentBase {
     //!
     ~StaticMemoryComponentImpl();
 
-  PRIVATE:
+  private:
 
     // ----------------------------------------------------------------------
     // Handler implementations for user-defined typed input ports

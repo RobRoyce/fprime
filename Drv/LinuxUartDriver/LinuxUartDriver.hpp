@@ -43,21 +43,21 @@ class LinuxUartDriver final : public LinuxUartDriverComponentBase {
 #ifdef TGT_OS_TYPE_LINUX
       BAUD_460K=460800,
       BAUD_921K=921600,
-      BAUD_1000K=1000000000,
-      BAUD_1152K=1152000000,
-      BAUD_1500K=1500000000,
-      BAUD_2000K=2000000000,
+      BAUD_1000K=1000000,
+      BAUD_1152K=1152000,
+      BAUD_1500K=1500000,
+      BAUD_2000K=2000000,
 #ifdef B2500000
-      BAUD_2500K=2500000000,
+      BAUD_2500K=2500000,
 #endif
 #ifdef B3000000
-      BAUD_3000K=3000000000,
+      BAUD_3000K=3000000,
 #endif
 #ifdef B3500000
-      BAUD_3500K=3500000000,
+      BAUD_3500K=3500000,
 #endif
 #ifdef B4000000
-      BAUD_4000K=4000000000
+      BAUD_4000K=4000000
 #endif
 #endif
     };
@@ -72,7 +72,7 @@ class LinuxUartDriver final : public LinuxUartDriverComponentBase {
     //! start the serial poll thread.
     //! buffSize is the max receive buffer size
     //!
-    void start(Os::Task::ParamType priority = Os::Task::TASK_DEFAULT,
+    void start(FwTaskPriorityType priority = Os::Task::TASK_PRIORITY_DEFAULT,
                Os::Task::ParamType stackSize = Os::Task::TASK_DEFAULT,
                Os::Task::ParamType cpuAffinity = Os::Task::TASK_DEFAULT);
 
@@ -86,18 +86,24 @@ class LinuxUartDriver final : public LinuxUartDriverComponentBase {
     //!
     ~LinuxUartDriver();
 
-  PRIVATE:
+  private:
     // ----------------------------------------------------------------------
     // Handler implementations for user-defined typed input ports
     // ----------------------------------------------------------------------
 
     //! Handler implementation for serialSend
     //!
-    Drv::SendStatus send_handler(FwIndexType portNum, /*!< The port number*/
-                                 Fw::Buffer& serBuffer);
+    void send_handler(FwIndexType portNum, /*!< The port number*/
+                                 Fw::Buffer& serBuffer) override;
 
+    //! Handler implementation for recvReturnIn
+    //!
+    //! Port receiving back ownership of data sent out on $recv port
+    void recvReturnIn_handler(FwIndexType portNum,  //!< The port number
+                                Fw::Buffer& fwBuffer  //!< The buffer
+                                ) override;
 
-    NATIVE_INT_TYPE m_fd;  //!< file descriptor returned for I/O device
+    PlatformIntType m_fd;  //!< file descriptor returned for I/O device
     U32 m_allocationSize; //!< size of allocation request to memory manager
     const char* m_device;  //!< original device path
 

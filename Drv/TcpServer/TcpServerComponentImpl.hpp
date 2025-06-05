@@ -13,7 +13,7 @@
 #ifndef TcpServerComponentImpl_HPP
 #define TcpServerComponentImpl_HPP
 
-#include <IpCfg.hpp>
+#include <config/IpCfg.hpp>
 #include <Drv/Ip/IpSocket.hpp>
 #include <Drv/Ip/SocketComponentHelper.hpp>
 #include <Drv/Ip/TcpServerSocket.hpp>
@@ -22,6 +22,9 @@
 namespace Drv {
 
 class TcpServerComponentImpl final : public TcpServerComponentBase, public SocketComponentHelper {
+
+  friend class TcpServerTester;
+
   public:
     // ----------------------------------------------------------------------
     // Construction, initialization, and destruction
@@ -94,7 +97,7 @@ class TcpServerComponentImpl final : public TcpServerComponentBase, public Socke
      */
     U16 getListenPort();
 
-  PROTECTED:
+  protected:
     // ----------------------------------------------------------------------
     // Implementations for socket read task virtual methods
     // ----------------------------------------------------------------------
@@ -139,7 +142,7 @@ class TcpServerComponentImpl final : public TcpServerComponentBase, public Socke
      */
     void readLoop() override;
 
-  PRIVATE:
+  private:
 
     // ----------------------------------------------------------------------
     // Handler implementations for user-defined typed input ports
@@ -150,7 +153,7 @@ class TcpServerComponentImpl final : public TcpServerComponentBase, public Socke
      *
      * Passing data to this port will send data from the TcpServer to whatever TCP client this component has connected
      * to. Should the socket not be opened or was disconnected, then this port call will return SEND_RETRY and critical
-     * transmissions should be retried. SEND_ERROR indicates an unresolvable error. SEND_OK is returned when the data
+     * transmissions should be retried. OTHER_ERROR indicates an unresolvable error. OP_OK is returned when the data
      * has been sent.
      *
      * Note: this component delegates the reopening of the socket to the read thread and thus the caller should retry
@@ -158,9 +161,15 @@ class TcpServerComponentImpl final : public TcpServerComponentBase, public Socke
      *
      * \param portNum: fprime port number of the incoming port call
      * \param fwBuffer: buffer containing data to be sent
-     * \return SEND_OK on success, SEND_RETRY when critical data should be retried and SEND_ERROR upon error
      */
-    Drv::SendStatus send_handler(const FwIndexType portNum, Fw::Buffer& fwBuffer) override;
+    void send_handler(const FwIndexType portNum, Fw::Buffer& fwBuffer) override;
+
+    //! Handler implementation for recvReturnIn
+    //!
+    //! Port receiving back ownership of data sent out on $recv port
+    void recvReturnIn_handler(FwIndexType portNum,  //!< The port number
+                                Fw::Buffer& fwBuffer  //!< The buffer
+                                ) override;
 
     Drv::TcpServerSocket m_socket; //!< Socket implementation
 

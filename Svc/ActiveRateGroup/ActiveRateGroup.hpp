@@ -29,6 +29,9 @@ namespace Svc {
     //!
 
     class ActiveRateGroup final : public ActiveRateGroupComponentBase {
+
+        friend class ActiveRateGroupImplTester;
+
         public:
             static constexpr FwIndexType CONNECTION_COUNT_MAX = NUM_RATEGROUPMEMBEROUT_OUTPUT_PORTS;
 
@@ -50,7 +53,7 @@ namespace Svc {
             //!         output port number.
             //!  \param numContexts The number of elements in the context array.
 
-            void configure(NATIVE_INT_TYPE contexts[], NATIVE_INT_TYPE numContexts);
+            void configure(U32 contexts[], FwIndexType numContexts);
 
             //!  \brief ActiveRateGroup destructor
             //!
@@ -58,7 +61,7 @@ namespace Svc {
 
             ~ActiveRateGroup();
 
-        PRIVATE:
+        private:
 
             //!  \brief Input cycle port handler
             //!
@@ -101,9 +104,9 @@ namespace Svc {
             U32 m_cycles; //!< cycles executed
             U32 m_maxTime; //!< maximum execution time in microseconds
             volatile bool m_cycleStarted; //!< indicate that cycle has started. Used to detect overruns.
-            NATIVE_INT_TYPE m_contexts[CONNECTION_COUNT_MAX]; //!< Must match number of output ports
-            NATIVE_INT_TYPE m_numContexts; //!< Number of contexts passed in by user
-            NATIVE_INT_TYPE m_overrunThrottle; //!< throttle value for overrun events
+            U32 m_contexts[CONNECTION_COUNT_MAX]; //!< Must match number of output ports
+            FwIndexType m_numContexts; //!< Number of contexts passed in by user
+            FwIndexType m_overrunThrottle; //!< throttle value for overrun events
             U32 m_cycleSlips; //!< tracks number of cycle slips
     };
 

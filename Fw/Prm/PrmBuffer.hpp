@@ -1,5 +1,5 @@
 /*
- * Cmd.hpp
+ * PrmBuffer.hpp
  *
  *  Created on: Sep 10, 2012
  *      Author: ppandian
@@ -12,9 +12,9 @@
 #ifndef FW_PRM_BUFFER_HPP
 #define FW_PRM_BUFFER_HPP
 
-#include <FpConfig.hpp>
+#include <Fw/FPrimeBasicTypes.hpp>
 #include <Fw/Types/Serializable.hpp>
-#include <Fw/Cfg/SerIds.hpp>
+#include <Fw/Types/SerIds.hpp>
 
 #include "Fw/Types/StringBase.hpp"
 
