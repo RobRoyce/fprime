@@ -20,8 +20,19 @@
 
 namespace Svc {
 
+    // Forward declaration for UTs
+    namespace Accumulate { class BufferAccumulatorTester; }
+    namespace Drain { class BufferAccumulatorTester; }
+    namespace Errors { class BufferAccumulatorTester; }
+
     class BufferAccumulator final : public BufferAccumulatorComponentBase {
-      PRIVATE:
+
+      friend class BufferAccumulatorTester;
+      friend class Svc::Accumulate::BufferAccumulatorTester;
+      friend class Svc::Drain::BufferAccumulatorTester;
+      friend class Svc::Errors::BufferAccumulatorTester;
+
+      private:
 
         // ----------------------------------------------------------------------
         // Types
@@ -37,7 +48,7 @@ namespace Svc {
                 ~ArrayFIFOBuffer();
 
                 void init(Fw::Buffer* const elements,  //!< The array elements
-                          NATIVE_UINT_TYPE capacity    //!< The capacity
+                          FwSizeType capacity    //!< The capacity
                         );
 
                 //! Enqueue an index.
@@ -53,13 +64,13 @@ namespace Svc {
 
                 //! Get the size of the queue
                 //! \return The size
-                U32 getSize() const;
+                FwSizeType getSize() const;
 
                 //! Get the capacity of the queue
                 //! \return The capacity
-                U32 getCapacity() const;
+                FwSizeType getCapacity() const;
 
-      PRIVATE:
+      private:
 
                 // ----------------------------------------------------------------------
                 // Private member variables
@@ -69,16 +80,16 @@ namespace Svc {
                 Fw::Buffer* m_elements;
 
                 //! The capacity of the queue
-                NATIVE_UINT_TYPE m_capacity;
+                FwSizeType m_capacity;
 
                 //! The enqueue index
-                NATIVE_UINT_TYPE m_enqueueIndex;
+                FwSizeType m_enqueueIndex;
 
                 //! The dequeue index
-                NATIVE_UINT_TYPE m_dequeueIndex;
+                FwSizeType m_dequeueIndex;
 
                 //! The size of the queue
-                NATIVE_UINT_TYPE m_size;
+                FwSizeType m_size;
         };  // class ArrayFIFOBuffer
 
         public:
@@ -104,13 +115,13 @@ namespace Svc {
         //! and init, but before task is spawned.
         void allocateQueue(
                 FwEnumStoreType identifier, Fw::MemAllocator& allocator,
-                NATIVE_UINT_TYPE maxNumBuffers  //!< The maximum number of buffers
+                FwSizeType maxNumBuffers  //!< The maximum number of buffers
                 );
 
         //! Return allocated queue. Should be done during shutdown
         void deallocateQueue(Fw::MemAllocator& allocator);
 
-      PRIVATE:
+      private:
 
         // ----------------------------------------------------------------------
         // Handler implementations for user-defined typed input ports
@@ -135,7 +146,7 @@ namespace Svc {
                             U32 key  //!< Value to return to pinger
                             );
 
-      PRIVATE:
+      private:
 
         // ----------------------------------------------------------------------
         // Command handler implementations
@@ -156,7 +167,7 @@ namespace Svc {
                                         BufferAccumulator_BlockMode blockMode
                                         );
 
-      PRIVATE:
+      private:
 
         // ----------------------------------------------------------------------
         // Private helper methods
@@ -165,7 +176,7 @@ namespace Svc {
         //! Send a stored buffer
         void sendStoredBuffer();
 
-      PRIVATE:
+      private:
 
         // ----------------------------------------------------------------------
         // Private member variables
@@ -192,10 +203,10 @@ namespace Svc {
         U32 m_numWarnings;
 
         //! The number of buffers drained in a partial drain command
-        U32 m_numDrained;
+        FwSizeType m_numDrained;
 
         //! The number of buffers TO drain in a partial drain command
-        U32 m_numToDrain;
+        FwSizeType m_numToDrain;
 
         //! The DrainBuffers opcode to respond to
         FwOpcodeType m_opCode;

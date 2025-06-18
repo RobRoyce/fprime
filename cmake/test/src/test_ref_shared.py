@@ -6,13 +6,15 @@
 ####
 import platform
 import tempfile
-
-import settings
-
-import cmake
-
 import json
+import pytest
 from pathlib import Path
+from . import cmake
+from . import settings
+
+
+if platform.system() == "Darwin":
+    pytestmark = pytest.mark.skip(reason="Shared modules are not supported on macOS")
 
 _ = cmake.get_build(
     "REF_BUILD",
@@ -54,19 +56,6 @@ def test_ref_installation(REF_BUILD):
         )
         assert output_path.exists(), f"Failed to locate {library_name} in build output"
     output_path = REF_BUILD["install"] / platform.system() / "Ref" / "bin" / "Ref"
-    assert output_path.exists(), "Failed to locate Ref in build output"
-
-
-def test_ref_dictionary(REF_BUILD):
-    """Run reference and assert reference targets exit"""
-    cmake.assert_process_success(REF_BUILD)
-    output_path = (
-        REF_BUILD["install"]
-        / platform.system()
-        / "Ref"
-        / "dict"
-        / "RefTopologyAppDictionary.xml"
-    )
     assert output_path.exists(), "Failed to locate Ref in build output"
 
 
@@ -123,12 +112,6 @@ def test_ref_module_info(REF_BUILD):
         actual_ac
     ), "Did not find expected autocoder sources"
     expected_gen = [
-        "SignalGenComponentAi.xml",
-        "SignalInfoSerializableAi.xml",
-        "SignalPairSerializableAi.xml",
-        "SignalPairSetArrayAi.xml",
-        "SignalSetArrayAi.xml",
-        "SignalTypeEnumAi.xml",
         "SignalGenComponentAc.cpp",
         "SignalGenComponentAc.hpp",
         "SignalInfoSerializableAc.cpp",
@@ -143,7 +126,6 @@ def test_ref_module_info(REF_BUILD):
         "SignalTypeEnumAc.hpp",
         "SignalGen_DpReqTypeEnumAc.cpp",
         "SignalGen_DpReqTypeEnumAc.hpp",
-        "SignalGen_DpReqTypeEnumAi.xml",
     ]
     actual_gen = [Path(source).name for source in generated]
     assert sorted(expected_gen) == sorted(

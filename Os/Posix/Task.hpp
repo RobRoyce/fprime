@@ -9,7 +9,7 @@
 #include <pthread.h>
 #include <Os/Task.hpp>
 
-#include <FpConfig.hpp>
+#include <Fw/FPrimeBasicTypes.hpp>
 #include <Fw/Types/Serializable.hpp>
 #include <Os/TaskString.hpp>
 #include <Os/Mutex.hpp>
@@ -103,7 +103,7 @@ namespace Task {
         //! \brief return the underlying task handle (implementation specific)
         //! \return internal task handle representation
         TaskHandle* getHandle() override;
-      PRIVATE:
+      private:
         //! \brief create a configured pthread
         //!
         //! Creates, and configures, but does not start a pthread. This may be called twice, once to try setting

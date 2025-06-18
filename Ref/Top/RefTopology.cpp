@@ -9,13 +9,13 @@
 // acknowledged.
 // ======================================================================
 // Provides access to autocoded functions
-#include <Ref/Top/RefPacketsAc.hpp>
 #include <Ref/Top/RefTopologyAc.hpp>
 
 // Necessary project-specified types
 #include <Fw/Types/MallocAllocator.hpp>
 #include <Os/Console.hpp>
-#include <Svc/FramingProtocol/FprimeProtocol.hpp>
+#include <Svc/FrameAccumulator/FrameDetector/FprimeFrameDetector.hpp>
+#include <Ref/Top/Ports_ComPacketQueueEnumAc.hpp>
 
 // Used for 1Hz synthetic cycling
 #include <Os/Mutex.hpp>
@@ -32,8 +32,8 @@ Fw::MallocAllocator mallocator;
 
 // The reference topology uses the F´ packet protocol when communicating with the ground and therefore uses the F´
 // framing and deframing implementations.
-Svc::FprimeFraming framing;
-Svc::FprimeDeframing deframing;
+Svc::FrameDetectors::FprimeFrameDetector frameDetector;
+
 
 // The reference topology divides the incoming clock signal (1Hz) into sub-signals: 1Hz, 1/2Hz, and 1/4Hz and
 // zero offset for all the dividers
@@ -41,9 +41,11 @@ Svc::RateGroupDriver::DividerSet rateGroupDivisorsSet{{{1, 0}, {2, 0}, {4, 0}}};
 
 // Rate groups may supply a context token to each of the attached children whose purpose is set by the project. The
 // reference topology sets each token to zero as these contexts are unused in this project.
-NATIVE_INT_TYPE rateGroup1Context[Svc::ActiveRateGroup::CONNECTION_COUNT_MAX] = {};
-NATIVE_INT_TYPE rateGroup2Context[Svc::ActiveRateGroup::CONNECTION_COUNT_MAX] = {};
-NATIVE_INT_TYPE rateGroup3Context[Svc::ActiveRateGroup::CONNECTION_COUNT_MAX] = {};
+U32 rateGroup1Context[Svc::ActiveRateGroup::CONNECTION_COUNT_MAX] = {};
+U32 rateGroup2Context[Svc::ActiveRateGroup::CONNECTION_COUNT_MAX] = {};
+U32 rateGroup3Context[Svc::ActiveRateGroup::CONNECTION_COUNT_MAX] = {};
+
+Svc::ComQueue::QueueConfigurationTable configurationTable;
 
 // A number of constants are needed for construction of the topology. These are specified here.
 enum TopologyConstants {
@@ -54,12 +56,16 @@ enum TopologyConstants {
     FILE_DOWNLINK_FILE_QUEUE_DEPTH = 10,
     HEALTH_WATCHDOG_CODE = 0x123,
     COMM_PRIORITY = 100,
-    UPLINK_BUFFER_MANAGER_STORE_SIZE = 3000,
-    UPLINK_BUFFER_MANAGER_QUEUE_SIZE = 30,
-    UPLINK_BUFFER_MANAGER_ID = 200,
+    // Buffer manager for Uplink/Downlink
+    COMMS_BUFFER_MANAGER_STORE_SIZE = 2048,
+    COMMS_BUFFER_MANAGER_STORE_COUNT = 20,
+    COMMS_BUFFER_MANAGER_FILE_STORE_SIZE = 3000,
+    COMMS_BUFFER_MANAGER_FILE_QUEUE_SIZE = 30,
+    COMMS_BUFFER_MANAGER_ID = 200,
+    // Buffer manager for Data Products
     DP_BUFFER_MANAGER_STORE_SIZE = 10000,
-    DP_BUFFER_MANAGER_QUEUE_SIZE = 10,
-    DP_BUFFER_MANAGER_ID = 300
+    DP_BUFFER_MANAGER_STORE_COUNT = 10,
+    DP_BUFFER_MANAGER_ID = 300,
 };
 
 /**
@@ -94,21 +100,21 @@ void configureTopology() {
                           FW_NUM_ARRAY_ELEMENTS(ConfigObjects::Ref_health::pingEntries), HEALTH_WATCHDOG_CODE);
 
     // Buffer managers need a configured set of buckets and an allocator used to allocate memory for those buckets.
-    Svc::BufferManager::BufferBins upBuffMgrBins;
-    memset(&upBuffMgrBins, 0, sizeof(upBuffMgrBins));
-    upBuffMgrBins.bins[0].bufferSize = UPLINK_BUFFER_MANAGER_STORE_SIZE;
-    upBuffMgrBins.bins[0].numBuffers = UPLINK_BUFFER_MANAGER_QUEUE_SIZE;
-    fileUplinkBufferManager.setup(UPLINK_BUFFER_MANAGER_ID, 0, mallocator, upBuffMgrBins);
+    Svc::BufferManager::BufferBins commsBuffMgrBins;
+    memset(&commsBuffMgrBins, 0, sizeof(commsBuffMgrBins));
+    commsBuffMgrBins.bins[0].bufferSize = COMMS_BUFFER_MANAGER_STORE_SIZE;
+    commsBuffMgrBins.bins[0].numBuffers = COMMS_BUFFER_MANAGER_STORE_COUNT;
+    commsBuffMgrBins.bins[1].bufferSize = COMMS_BUFFER_MANAGER_FILE_STORE_SIZE;
+    commsBuffMgrBins.bins[1].numBuffers = COMMS_BUFFER_MANAGER_FILE_QUEUE_SIZE;
+    commsBufferManager.setup(COMMS_BUFFER_MANAGER_ID, 0, mallocator, commsBuffMgrBins);
 
     Svc::BufferManager::BufferBins dpBuffMgrBins;
     memset(&dpBuffMgrBins, 0, sizeof(dpBuffMgrBins));
     dpBuffMgrBins.bins[0].bufferSize = DP_BUFFER_MANAGER_STORE_SIZE;
-    dpBuffMgrBins.bins[0].numBuffers = DP_BUFFER_MANAGER_QUEUE_SIZE;
+    dpBuffMgrBins.bins[0].numBuffers = DP_BUFFER_MANAGER_STORE_COUNT;
     dpBufferManager.setup(DP_BUFFER_MANAGER_ID, 0, mallocator, dpBuffMgrBins);
 
-    // Framer and Deframer components need to be passed a protocol handler
-    downlink.setup(framing);
-    uplink.setup(deframing);
+    frameAccumulator.configure(frameDetector, 1, mallocator, 2048);
 
     Fw::FileNameString dpDir("./DpCat");
     Fw::FileNameString dpState("./DpCat/DpState.dat");
@@ -119,8 +125,21 @@ void configureTopology() {
     dpCat.configure(&dpDir,1,dpState,0,mallocator);
     dpWriter.configure(dpDir);
 
+    // ComQueue configuration
+    // Events (highest-priority)
+    configurationTable.entries[Ref::Ports_ComPacketQueue::EVENTS].depth = 100;
+    configurationTable.entries[Ref::Ports_ComPacketQueue::EVENTS].priority = 0;
+    // Telemetry
+    configurationTable.entries[Ref::Ports_ComPacketQueue::TELEMETRY].depth = 500;
+    configurationTable.entries[Ref::Ports_ComPacketQueue::TELEMETRY].priority = 2;
+    // File Downlink (first entry after the ComPacket queues = NUM_CONSTANTS)
+    configurationTable.entries[Ref::Ports_ComPacketQueue::NUM_CONSTANTS].depth = 100;
+    configurationTable.entries[Ref::Ports_ComPacketQueue::NUM_CONSTANTS].priority = 1;
+    // Allocation identifier is 0 as the MallocAllocator discards it
+    comQueue.configure(configurationTable, 0, mallocator);
+
     // Note: Uncomment when using Svc:TlmPacketizer
-    // tlmSend.setPacketList(RefPacketsPkts, RefPacketsIgnore, 1);
+    // tlmSend.setPacketList(Ref::Ref_RefPacketsTlmPackets::packetList, Ref::Ref_RefPacketsTlmPackets::omittedChannels, 1);
 }
 
 // Public functions for use in main program are namespaced with deployment name Ref
@@ -137,7 +156,7 @@ void setupTopology(const TopologyState& state) {
     // Autocoded configuration. Function provided by autocoder.
     configComponents(state);
     if (state.hostname != nullptr && state.port != 0) {
-        comm.configure(state.hostname, state.port);
+        comDriver.configure(state.hostname, state.port);
     }
     // Project-specific component configuration. Function provided above. May be inlined, if desired.
     configureTopology();
@@ -151,34 +170,20 @@ void setupTopology(const TopologyState& state) {
     if (state.hostname != nullptr && state.port != 0) {
         Os::TaskString name("ReceiveTask");
         // Uplink is configured for receive so a socket task is started
-        comm.start(name, COMM_PRIORITY, Default::STACK_SIZE);
+        comDriver.start(name, COMM_PRIORITY, Default::STACK_SIZE);
     }
 }
 
-// Variables used for cycle simulation
-Os::Mutex cycleLock;
-volatile bool cycleFlag = true;
-
-void startSimulatedCycle(Fw::TimeInterval interval) {
-    cycleLock.lock();
-    bool cycling = cycleFlag;
-    cycleLock.unLock();
-
-    // Main loop
-    while (cycling) {
-        Ref::blockDrv.callIsr();
-        Os::Task::delay(interval);
-
-        cycleLock.lock();
-        cycling = cycleFlag;
-        cycleLock.unLock();
-    }
+void startRateGroups(Fw::TimeInterval interval) {
+    // This timer drives the fundamental tick rate of the system.
+    // Svc::RateGroupDriver will divide this down to the slower rate groups.
+    // This call will block until the stopRateGroups() call is made.
+    // For this Linux demo, that call is made from a signal handler.
+    linuxTimer.startTimer(interval.getSeconds()*1000+interval.getUSeconds()/1000);
 }
 
-void stopSimulatedCycle() {
-    cycleLock.lock();
-    cycleFlag = false;
-    cycleLock.unLock();
+void stopRateGroups() {
+    linuxTimer.quit();
 }
 
 void teardownTopology(const TopologyState& state) {
@@ -187,11 +192,12 @@ void teardownTopology(const TopologyState& state) {
     freeThreads(state);
 
     // Other task clean-up.
-    comm.stop();
-    (void)comm.join();
+    comDriver.stop();
+    (void)comDriver.join();
 
     // Resource deallocation
     cmdSeq.deallocateBuffer(mallocator);
-    fileUplinkBufferManager.cleanup();
+    commsBufferManager.cleanup();
+    frameAccumulator.cleanup();
 }
-};  // namespace Ref
+}  // namespace Ref

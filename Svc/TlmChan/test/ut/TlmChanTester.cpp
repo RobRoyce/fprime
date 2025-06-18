@@ -11,8 +11,8 @@
 #define MAX_HISTORY_SIZE 10
 #define QUEUE_DEPTH 10
 
-static const NATIVE_UINT_TYPE TEST_CHAN_SIZE = sizeof(FwChanIdType) + Fw::Time::SERIALIZED_SIZE + sizeof(U32);
-static const NATIVE_UINT_TYPE CHANS_PER_COMBUFFER =
+static const FwChanIdType TEST_CHAN_SIZE = sizeof(FwChanIdType) + Fw::Time::SERIALIZED_SIZE + sizeof(U32);
+static const FwChanIdType CHANS_PER_COMBUFFER =
     (FW_COM_BUFFER_MAX_SIZE - sizeof(FwPacketDescriptorType)) / TEST_CHAN_SIZE;
 static constexpr FwSizeType INTEGER_DIVISION_ROUNDED_UP(FwSizeType a, FwSizeType b) {
   return ((a % b) == 0) ? (a / b) : (a / b) + 1;
@@ -69,7 +69,7 @@ void TlmChanTester::runMultiChannel() {
 
     this->clearBuffs();
     // send all updates
-    for (NATIVE_UINT_TYPE n = 0; n < FW_NUM_ARRAY_ELEMENTS(ID_0); n++) {
+    for (FwChanIdType n = 0; n < FW_NUM_ARRAY_ELEMENTS(ID_0); n++) {
         this->sendBuff(ID_0[n], n);
     }
 
@@ -82,7 +82,7 @@ void TlmChanTester::runMultiChannel() {
     ASSERT_EQ(1, this->component.m_activeBuffer);
 
     // verify packets
-    for (NATIVE_UINT_TYPE n = 0; n < FW_NUM_ARRAY_ELEMENTS(ID_0); n++) {
+    for (FwChanIdType n = 0; n < FW_NUM_ARRAY_ELEMENTS(ID_0); n++) {
         // printf("#: %d\n",n);
         this->checkBuff(n, FW_NUM_ARRAY_ELEMENTS(ID_0), ID_0[n], n);
     }
@@ -96,7 +96,7 @@ void TlmChanTester::runMultiChannel() {
 
     this->clearBuffs();
     // send all updates
-    for (NATIVE_UINT_TYPE n = 0; n < FW_NUM_ARRAY_ELEMENTS(ID_1); n++) {
+    for (FwChanIdType n = 0; n < FW_NUM_ARRAY_ELEMENTS(ID_1); n++) {
         this->sendBuff(ID_1[n], n);
     }
 
@@ -109,7 +109,7 @@ void TlmChanTester::runMultiChannel() {
     ASSERT_EQ(0, this->component.m_activeBuffer);
 
     // verify packets
-    for (NATIVE_UINT_TYPE n = 0; n < FW_NUM_ARRAY_ELEMENTS(ID_1); n++) {
+    for (FwChanIdType n = 0; n < FW_NUM_ARRAY_ELEMENTS(ID_1); n++) {
         // printf("#: %d\n",n);
         this->checkBuff(n, FW_NUM_ARRAY_ELEMENTS(ID_1), ID_1[n], n);
     }
@@ -128,8 +128,10 @@ void TlmChanTester::runOffNominal() {
     ASSERT_EQ(Fw::FW_SERIALIZE_OK, stat);
 
     // Read back value
-    this->invoke_to_TlmGet(0, 10, timeTag, buff);
+    Fw::TlmValid valid = this->invoke_to_TlmGet(0, 10, timeTag, buff);
     ASSERT_EQ(0u, buff.getBuffLength());
+    ASSERT_EQ(valid, Fw::TlmValid::INVALID);
+
 }
 
 // ----------------------------------------------------------------------
@@ -163,7 +165,7 @@ bool TlmChanTester::doRun(bool check) {
     return this->m_bufferRecv;
 }
 
-void TlmChanTester::checkBuff(NATIVE_UINT_TYPE chanNum, NATIVE_UINT_TYPE totalChan, FwChanIdType id, U32 val) {
+void TlmChanTester::checkBuff(FwChanIdType chanNum, FwChanIdType totalChan, FwChanIdType id, U32 val) {
     Fw::Time timeTag;
     // deserialize packet
     Fw::SerializeStatus stat;
@@ -175,10 +177,10 @@ void TlmChanTester::checkBuff(NATIVE_UINT_TYPE chanNum, NATIVE_UINT_TYPE totalCh
         tlc004 = true;
     }
 
-    NATIVE_UINT_TYPE currentChan = 0;
+    FwChanIdType currentChan = 0;
 
     // Search for channel ID
-    for (NATIVE_UINT_TYPE packet = 0; packet < this->m_numBuffs; packet++) {
+    for (FwChanIdType packet = 0; packet < this->m_numBuffs; packet++) {
         // Look at packet descriptor for current packet
         this->m_rcvdBuffer[packet].resetDeser();
         // first piece should be tlm packet descriptor
@@ -187,7 +189,7 @@ void TlmChanTester::checkBuff(NATIVE_UINT_TYPE chanNum, NATIVE_UINT_TYPE totalCh
         ASSERT_EQ(Fw::FW_SERIALIZE_OK, stat);
         ASSERT_EQ(desc, static_cast<FwPacketDescriptorType>(Fw::ComPacket::FW_PACKET_TELEM));
 
-        for (NATIVE_UINT_TYPE chan = 0; chan < CHANS_PER_COMBUFFER; chan++) {
+        for (FwChanIdType chan = 0; chan < CHANS_PER_COMBUFFER; chan++) {
             // decode channel ID
             FwEventIdType sentId;
             stat = this->m_rcvdBuffer[packet].deserialize(sentId);
@@ -249,16 +251,17 @@ void TlmChanTester::sendBuff(FwChanIdType id, U32 val) {
         tlc002 = true;
     }
 
-    this->invoke_to_TlmGet(0, id, timeTag, readBack);
+    Fw::TlmValid valid = this->invoke_to_TlmGet(0, id, timeTag, readBack);
     // deserialize value
     retestVal = 0;
     readBack.deserialize(retestVal);
     ASSERT_EQ(retestVal, val);
+    ASSERT_EQ(valid, Fw::TlmValid::VALID);
 }
 
 void TlmChanTester::clearBuffs() {
     this->m_numBuffs = 0;
-    for (NATIVE_INT_TYPE n = 0; n < TLMCHAN_HASH_BUCKETS; n++) {
+    for (FwChanIdType n = 0; n < TLMCHAN_HASH_BUCKETS; n++) {
         this->m_rcvdBuffer[n].resetSer();
     }
 }
@@ -275,11 +278,11 @@ void TlmChanTester::dumpTlmEntry(TlmChan::TlmEntry* entry) {
 
 void TlmChanTester::dumpHash() {
     //        printf("**Buffer 0\n");
-    for (NATIVE_INT_TYPE slot = 0; slot < TLMCHAN_NUM_TLM_HASH_SLOTS; slot++) {
+    for (FwChanIdType slot = 0; slot < TLMCHAN_NUM_TLM_HASH_SLOTS; slot++) {
         printf("Slot: %d\n", slot);
         if (this->component.m_tlmEntries[0].slots[slot]) {
             TlmChan::TlmEntry* entry = component.m_tlmEntries[0].slots[slot];
-            for (NATIVE_INT_TYPE bucket = 0; bucket < TLMCHAN_HASH_BUCKETS; bucket++) {
+            for (FwChanIdType bucket = 0; bucket < TLMCHAN_HASH_BUCKETS; bucket++) {
                 dumpTlmEntry(entry);
                 if (entry->next == nullptr) {
                     break;
@@ -292,16 +295,16 @@ void TlmChanTester::dumpHash() {
         }
     }
     printf("\n");
-    //        for (NATIVE_INT_TYPE bucket = 0; bucket < TLMCHAN_HASH_BUCKETS; bucket++) {
+    //        for (FwChanIdType bucket = 0; bucket < TLMCHAN_HASH_BUCKETS; bucket++) {
     //            printf("Bucket: %d ",bucket);
     //            dumpTlmEntry(&m_impl.m_tlmEntries[0].buckets[bucket]);
     //        }
     //        printf("**Buffer 1\n");
-    //        for (NATIVE_INT_TYPE slot = 0; slot < TLMCHAN_NUM_TLM_HASH_SLOTS; slot++) {
+    //        for (FwChanIdType slot = 0; slot < TLMCHAN_NUM_TLM_HASH_SLOTS; slot++) {
     //            printf("Slot: %d\n",slot);
     //            if (m_impl.m_tlmEntries[1].slots[slot]) {
     //                TlmChanImpl::TlmEntry* entry = m_impl.m_tlmEntries[1].slots[slot];
-    //                for (NATIVE_INT_TYPE bucket = 0; bucket < TLMCHAN_HASH_BUCKETS; bucket++) {
+    //                for (FwChanIdType bucket = 0; bucket < TLMCHAN_HASH_BUCKETS; bucket++) {
     //                    dumpTlmEntry(entry);
     //                    if (entry->next == 0) {
     //                        break;
@@ -314,7 +317,7 @@ void TlmChanTester::dumpHash() {
     //            }
     //        }
     //        printf("\n");
-    //        for (NATIVE_INT_TYPE bucket = 0; bucket < TLMCHAN_HASH_BUCKETS; bucket++) {
+    //        for (FwChanIdType bucket = 0; bucket < TLMCHAN_HASH_BUCKETS; bucket++) {
     //            printf("Bucket: %d\n",bucket);
     //            dumpTlmEntry(&m_impl.m_tlmEntries[1].buckets[bucket]);
     //        }

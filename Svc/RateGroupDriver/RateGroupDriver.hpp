@@ -1,5 +1,4 @@
 /**
- * \file
  * \author T. Canham
  * \brief RateGroupDivider component implementation
  *
@@ -19,7 +18,7 @@
 #define SVC_RATEGROUPDRIVER_HPP
 
 #include <Svc/RateGroupDriver/RateGroupDriverComponentAc.hpp>
-#include <FpConfig.hpp>
+#include <Fw/FPrimeBasicTypes.hpp>
 
 namespace Svc {
 
@@ -32,6 +31,8 @@ namespace Svc {
 
     class RateGroupDriver final : public RateGroupDriverComponentBase {
 
+        friend class RateGroupDriverImplTester;
+
         public:
             //! Size of the divider table, provided as a constants to users passing the table in
             static const FwIndexType DIVIDER_SIZE = NUM_CYCLEOUT_OUTPUT_PORTS;
@@ -42,14 +43,14 @@ namespace Svc {
                 //! Initializes divisor and offset to 0 (unused)
                 Divider() : divisor(0), offset(0)
                 {}
-                //! Initializes divisor and offset to passed-in pair 
-                Divider(NATIVE_INT_TYPE divisorIn, NATIVE_INT_TYPE offsetIn) :
+                //! Initializes divisor and offset to passed-in pair
+                Divider(FwSizeType divisorIn, FwSizeType offsetIn) :
                     divisor(divisorIn), offset(offsetIn)
                 {}
                 //! Divisor
-                NATIVE_INT_TYPE divisor;
+                FwSizeType divisor;
                 //! Offset
-                NATIVE_INT_TYPE offset;
+                FwSizeType offset;
             };
 
             //! \class DividerSet
@@ -77,7 +78,7 @@ namespace Svc {
 
             ~RateGroupDriver();
 
-        PRIVATE:
+        private:
 
             //! downcall for input port
             //! NOTE: This port can execute in ISR context.
@@ -87,10 +88,10 @@ namespace Svc {
             Divider m_dividers[NUM_CYCLEOUT_OUTPUT_PORTS];
 
             //! tick counter
-            NATIVE_INT_TYPE m_ticks;
+            FwSizeType m_ticks;
 
             //! rollover counter
-            NATIVE_INT_TYPE m_rollover;
+            FwSizeType m_rollover;
 
             //! has the configure method been called
             bool m_configured;

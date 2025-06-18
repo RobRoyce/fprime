@@ -14,7 +14,7 @@
 #define TESTER_HPP
 
 #include "LinuxTimerGTestBase.hpp"
-#include "Svc/LinuxTimer/LinuxTimerComponentImpl.hpp"
+#include "Svc/LinuxTimer/LinuxTimer.hpp"
 
 namespace Svc {
 
@@ -81,9 +81,9 @@ namespace Svc {
 
       //! The component under test
       //!
-      LinuxTimerComponentImpl component;
+      LinuxTimer component;
 
-      NATIVE_INT_TYPE m_numCalls;
+      U32 m_numCalls;
 
   };
 

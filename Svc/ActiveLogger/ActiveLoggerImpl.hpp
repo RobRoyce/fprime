@@ -10,7 +10,7 @@
 
 #include <Svc/ActiveLogger/ActiveLoggerComponentAc.hpp>
 #include <Fw/Log/LogPacket.hpp>
-#include <ActiveLoggerImplCfg.hpp>
+#include <config/ActiveLoggerImplCfg.hpp>
 
 namespace Svc {
 
@@ -18,8 +18,8 @@ namespace Svc {
         public:
             ActiveLoggerImpl(const char* compName); //!< constructor
             virtual ~ActiveLoggerImpl(); //!< destructor
-        PROTECTED:
-        PRIVATE:
+        protected:
+        private:
             void LogRecv_handler(FwIndexType portNum, FwEventIdType id, Fw::Time &timeTag, const Fw::LogSeverity& severity, Fw::LogBuffer &args);
             void loqQueue_internalInterfaceHandler(FwEventIdType id, const Fw::Time &timeTag, const Fw::LogSeverity& severity, const Fw::LogBuffer &args);
 

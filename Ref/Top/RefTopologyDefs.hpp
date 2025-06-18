@@ -11,10 +11,9 @@
 #ifndef REF_REFTOPOLOGYDEFS_HPP
 #define REF_REFTOPOLOGYDEFS_HPP
 
-#include "Drv/BlockDriver/BlockDriver.hpp"
+#include "Ref/BlockDriver/BlockDriver.hpp"
 #include "Fw/Types/MallocAllocator.hpp"
 #include "Ref/Top/FppConstantsAc.hpp"
-#include "Svc/FramingProtocol/FprimeProtocol.hpp"
 #include "Svc/Health/Health.hpp"
 
 // Definitions are placed within a namespace named after the deployment
@@ -30,7 +29,7 @@ namespace Ref {
  */
 struct TopologyState {
     const char* hostname;
-    U32 port;
+    U16 port;
 };
 
 /**

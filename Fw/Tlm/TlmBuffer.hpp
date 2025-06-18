@@ -11,9 +11,9 @@
 #ifndef FW_TLM_BUFFER_HPP
 #define FW_TLM_BUFFER_HPP
 
-#include <FpConfig.hpp>
+#include <Fw/FPrimeBasicTypes.hpp>
 #include <Fw/Types/Serializable.hpp>
-#include <Fw/Cfg/SerIds.hpp>
+#include <Fw/Types/SerIds.hpp>
 
 namespace Fw {
 
@@ -35,7 +35,7 @@ namespace Fw {
             U8* getBuffAddr();
             const U8* getBuffAddr() const;
 
-        PRIVATE:
+        private:
             U8 m_bufferData[FW_TLM_BUFFER_MAX_SIZE]; // command argument buffer
     };
 
